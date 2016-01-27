@@ -1,0 +1,52 @@
+Models:
+    Location:
+        url: string
+
+
+    Bookmark:
+        title: string
+        description: string
+
+        parent: fk
+            # self-reference
+        position: int
+            # relative to parent
+
+        date_added: datetime
+        date_modified: datetime
+
+        type: int
+            # 1 - bookmark
+            # 2 - folder
+        location: fk
+            # Location table
+
+    Param:
+        key: string
+            # primary key
+        value: string
+        description: string
+
+    Page:
+        title: string
+        type: string
+            # 'front_end' - front end page
+
+    Tab:
+        title: string
+        page: fk  # parent page
+
+    Pane:
+        bookmark: fk
+
+        width: int
+        height: int
+
+        x: int
+        y: int
+
+        tab: fk  # parent tab
+
+Params:
+    bookmark.directory.root: Root directory id (Bookmark table)
+    bookmark.directory.front_page: Front page directory id (Bookmark table)

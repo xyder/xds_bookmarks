@@ -66,3 +66,28 @@ class Param(models.Model):
 
     def __str__(self):
         return self.key
+
+
+class Page(models.Model):
+    title = models.TextField(null=True, blank=True)
+    type = models.TextField()
+
+    def __str__(self):
+        return self.title
+
+
+class Tab(models.Model):
+    title = models.TextField(null=True, blank=True)
+    page = models.ForeignKey(Page)
+
+
+class Pane(models.Model):
+    bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE)
+
+    width = models.IntegerField(default=100)
+    height = models.IntegerField(default=100)
+
+    x = models.IntegerField(default=0)
+    y = models.IntegerField(default=0)
+
+    tab = models.ForeignKey(Tab)
