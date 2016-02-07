@@ -1,93 +1,170 @@
-from django.db import models
+from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Enum
+from sqlalchemy.orm import relationship, backref
+from sqlalchemy.event import listen
+
+from xds_server.core.database import Base, db_session
 
 
-class Location(models.Model):
-    url = models.TextField(null=True, blank=True)
+class Location(Base):
+    """
+    Model for URL.
+    """
 
-    def __str__(self):
+    __tablename__ = 'locations'
+
+    id = Column(Integer, primary_key=True)
+    url = Column(Text, nullable=True)
+
+    def __repr__(self):
         return self.url
 
 
-class Bookmark(models.Model):
-    title = models.TextField(null=True, blank=True)
-    description = models.TextField(null=True, blank=True)
+class Bookmark(Base):
+    """
+    Self-referencing model for Bookmarks.
+    """
 
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
-    position = models.IntegerField(null=True, blank=True)
+    __tablename__ = 'bookmarks'
 
-    date_added = models.DateTimeField(null=True, blank=True)
-    date_modified = models.DateTimeField(null=True, blank=True)
+    id = Column(Integer, primary_key=True)
 
-    type = models.IntegerField(default=1)  # 1 - bookmark, 2 - directory
-    location = models.ForeignKey(Location, null=True, blank=True)
+    parent_id = Column(Integer, ForeignKey('bookmarks.id'), index=True)
+    parent = relationship('Bookmark',
+                          remote_side=[id],
+                          backref=backref('children', cascade='all,delete'))
 
-    @staticmethod
-    def recount_positions(parent=None):
-        objects = Bookmark.objects.filter(parent=parent).order_by('position')
-        k = 0
-        for o in objects:
-            o.position = k
-            o.save()
-            k += 1
-        return k
+    position = Column(Integer)
 
-    @staticmethod
-    def get_last_position(parent=None):
-        return Bookmark.recount_positions(parent)
+    title = Column(Text)
+    description = Column(Text)
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+    date_added = Column(DateTime)
+    date_modified = Column(DateTime)
 
-        if self.position is None:
-            self.position = self.get_last_position(self.parent)
+    type = Column(Enum("container", "item", name='bookmark_types'), nullable=False)
 
-        super().save(force_insert=force_insert,
-                     force_update=force_update,
-                     using=using,
-                     update_fields=update_fields
-                     )
+    location_id = Column(Integer, ForeignKey('locations.id'), index=True)
+    location = relationship('Location', backref='bookmarks')
 
-    def __str__(self):
-        if self.title:
-            return self.title
-
-        if self.location:
-            return self.location.url
-
-        if self.description:
-            return self.description
-
-        return super().__str__()
-
-
-class Param(models.Model):
-    key = models.TextField(primary_key=True)
-    value = models.TextField(null=True, blank=True)
-    description = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return self.key
-
-
-class Page(models.Model):
-    title = models.TextField(null=True, blank=True)
-    type = models.TextField()
-
-    def __str__(self):
+    def __repr__(self):
         return self.title
 
 
-class Tab(models.Model):
-    title = models.TextField(null=True, blank=True)
-    page = models.ForeignKey(Page)
+class Page(Base):
+    """
+    Model for Page. This would correspond to an actual page on the web interface.
+    """
+
+    __tablename__ = 'pages'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(Text)
+
+    def __repr__(self):
+        return self.title
 
 
-class Pane(models.Model):
-    bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE)
+class Tab(Base):
+    """
+    Model for a Tab. Multiple tabs can be part of a page.
+    """
 
-    width = models.IntegerField(default=100)
-    height = models.IntegerField(default=100)
+    __tablename__ = 'tabs'
 
-    x = models.IntegerField(default=0)
-    y = models.IntegerField(default=0)
+    id = Column(Integer, primary_key=True)
+    title = Column(Text)
+    page_id = Column(Integer, ForeignKey('pages.id'), index=True)
+    page = relationship('Page', backref='tabs')
 
-    tab = models.ForeignKey(Tab)
+    def __repr__(self):
+        return self.title
+
+
+class Pane(Base):
+    """
+    Model for a Pane. Multiple panes can be part of a tab. A pane can have a bookmark directory associated.
+    """
+
+    __tablename__ = 'panes'
+
+    id = Column(Integer, primary_key=True)
+
+    bookmark_id = Column(ForeignKey('bookmarks.id'), index=True, nullable=False)
+    bookmark = relationship('Bookmark', backref='pane', uselist=False)
+
+    width = Column(Integer, default=0)
+    height = Column(Integer, default=0)
+
+    x = Column(Integer, default=0)
+    y = Column(Integer, default=0)
+
+    tab_id = Column(ForeignKey('tabs.id'), index=True)
+    tab = relationship('Tab', remote_side=[Tab.id], backref='panes')
+
+    def __repr__(self):
+        return '{"id": "%s", "bookmark_id": "%s"}' % (self.id, self.bookmark_id)
+
+
+def recount_positions(bookmark, is_deleted):
+    """
+    Function that recounts the relative positions of the children of the parent of the given bookmark.
+    :param is_deleted: if the bookmark is marked for deletion.
+    """
+
+    children = Bookmark.query.filter(
+        Bookmark.parent == bookmark.parent
+    ).order_by(Bookmark.position.asc()).all()
+
+    if bookmark in children:
+        children.remove(bookmark)
+
+    k = 0
+    n = len(children)
+
+    if not is_deleted:
+        if bookmark.position is None or bookmark.position > n:
+            bookmark.position = n
+
+        if bookmark.position < 0:
+            bookmark.position = 0
+
+    for child in children:
+        # skip bookmark if not deleted
+        if k == bookmark.position and not is_deleted:
+            k += 1
+
+        child.position = k
+        k += 1
+
+
+def process_session_objects(session, objects, parents, is_deleted):
+    """
+    Function that processes a set of session objects.
+    :param parents: the bookmark parents for which the children were already recounted.
+    :param is_deleted: if the objects in the set were marked for deletion
+    :return: expanded list of parents for which the children were recounted.
+    """
+
+    for obj in objects:
+        if isinstance(obj, Bookmark) and obj.parent not in parents:
+            if session.is_modified(obj) or is_deleted:
+                recount_positions(obj, is_deleted)
+                parents.append(obj.parent)
+    return parents
+
+
+# listeners
+# noinspection PyUnusedLocal
+def before_session_flush(session, flush_context, instances):
+    """
+    Function that processes session objects before they are stored in the database.
+    """
+
+    parents = []
+    parents = process_session_objects(session, session.new, parents, False)
+    parents = process_session_objects(session, session.dirty, parents, False)
+    process_session_objects(session, session.deleted, parents, True)
+
+
+# listener registration
+listen(db_session, 'before_flush', before_session_flush)

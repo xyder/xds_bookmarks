@@ -1,7 +1,6 @@
-from django.conf.urls import url
-
 from xds_server_apps.xds_bookmarks import views
+from xds_server.tools.routing import url
 
 urlpatterns = [
-    url(r'^$', views.index, name='index')
+    url('/', view_func=views.index),
 ]

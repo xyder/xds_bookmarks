@@ -29,8 +29,6 @@ Models:
 
     Page:
         title: string
-        type: string
-            # 'front_end' - front end page
 
     Tab:
         title: string
@@ -48,5 +46,4 @@ Models:
         tab: fk  # parent tab
 
 Params:
-    bookmark.directory.root: Root directory id (Bookmark table)
-    bookmark.directory.front_page: Front page directory id (Bookmark table)
+    -

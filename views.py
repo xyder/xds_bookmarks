@@ -1,7 +1,9 @@
-from django.http import HttpResponse
-from django.shortcuts import render
+from flask import render_template
 
 
-def index(request):
-    context = {}
-    return render(request, 'xds_bookmarks/index.html', context)
+def index():
+    """
+    The index view for the bookmarks app.
+    """
+
+    return render_template('xds_bookmarks/index.html')

@@ -1,9 +1,11 @@
-from django.contrib import admin
-from xds_server_apps.xds_bookmarks.models import Bookmark, Location, Param, Page, Pane, Tab
+from flask.ext.admin.contrib.sqla import ModelView
 
-admin.site.register(Bookmark)
-admin.site.register(Location)
-admin.site.register(Param)
-admin.site.register(Page)
-admin.site.register(Pane)
-admin.site.register(Tab)
+from xds_server.core import admin
+from xds_server.core.database import db_session
+from xds_server_apps.xds_bookmarks import models
+
+admin.add_view(ModelView(models.Location, db_session))
+admin.add_view(ModelView(models.Bookmark, db_session))
+admin.add_view(ModelView(models.Page, db_session))
+admin.add_view(ModelView(models.Tab, db_session))
+admin.add_view(ModelView(models.Pane, db_session))
