@@ -3,6 +3,11 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy.event import listen
 
 from xds_server.core.database import Base, db_session
+from xds_server.core.lib import get_custom_prefixer
+from xds_server_apps.xds_bookmarks import APP_NAME
+
+
+prefixer = get_custom_prefixer(APP_NAME)
 
 
 class Location(Base):
@@ -10,7 +15,7 @@ class Location(Base):
     Model for URL.
     """
 
-    __tablename__ = 'locations'
+    __tablename__ = prefixer('locations')
 
     id = Column(Integer, primary_key=True)
     url = Column(Text, nullable=True)
@@ -24,11 +29,11 @@ class Bookmark(Base):
     Self-referencing model for Bookmarks.
     """
 
-    __tablename__ = 'bookmarks'
+    __tablename__ = prefixer('bookmarks')
 
     id = Column(Integer, primary_key=True)
 
-    parent_id = Column(Integer, ForeignKey('bookmarks.id'), index=True)
+    parent_id = Column(Integer, ForeignKey(prefixer('bookmarks.id')), index=True)
     parent = relationship('Bookmark',
                           remote_side=[id],
                           backref=backref('children', cascade='all,delete'))
@@ -43,7 +48,7 @@ class Bookmark(Base):
 
     type = Column(Enum("container", "item", name='bookmark_types'), nullable=False)
 
-    location_id = Column(Integer, ForeignKey('locations.id'), index=True)
+    location_id = Column(Integer, ForeignKey(prefixer('locations.id')), index=True)
     location = relationship('Location', backref='bookmarks')
 
     def __repr__(self):
@@ -55,7 +60,7 @@ class Page(Base):
     Model for Page. This would correspond to an actual page on the web interface.
     """
 
-    __tablename__ = 'pages'
+    __tablename__ = prefixer('pages')
 
     id = Column(Integer, primary_key=True)
     title = Column(Text)
@@ -69,11 +74,11 @@ class Tab(Base):
     Model for a Tab. Multiple tabs can be part of a page.
     """
 
-    __tablename__ = 'tabs'
+    __tablename__ = prefixer('tabs')
 
     id = Column(Integer, primary_key=True)
     title = Column(Text)
-    page_id = Column(Integer, ForeignKey('pages.id'), index=True)
+    page_id = Column(Integer, ForeignKey(prefixer('pages.id')), index=True)
     page = relationship('Page', backref='tabs')
 
     def __repr__(self):
@@ -85,11 +90,11 @@ class Pane(Base):
     Model for a Pane. Multiple panes can be part of a tab. A pane can have a bookmark directory associated.
     """
 
-    __tablename__ = 'panes'
+    __tablename__ = prefixer('panes')
 
     id = Column(Integer, primary_key=True)
 
-    bookmark_id = Column(ForeignKey('bookmarks.id'), index=True, nullable=False)
+    bookmark_id = Column(ForeignKey(prefixer('bookmarks.id')), index=True, nullable=False)
     bookmark = relationship('Bookmark', backref='pane', uselist=False)
 
     width = Column(Integer, default=0)
@@ -98,7 +103,7 @@ class Pane(Base):
     x = Column(Integer, default=0)
     y = Column(Integer, default=0)
 
-    tab_id = Column(ForeignKey('tabs.id'), index=True)
+    tab_id = Column(ForeignKey(prefixer('tabs.id')), index=True)
     tab = relationship('Tab', remote_side=[Tab.id], backref='panes')
 
     def __repr__(self):
