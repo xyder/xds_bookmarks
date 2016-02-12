@@ -2,9 +2,9 @@ from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.event import listen
 
-from xds_server.core.database import Base, db_session
-from xds_server.core.lib import get_custom_prefixer
-from xds_server_apps.xds_bookmarks import APP_NAME
+from core.database import Base, db_session
+from core.lib import get_custom_prefixer
+from xds_bookmarks import APP_NAME
 
 
 prefixer = get_custom_prefixer(APP_NAME)
