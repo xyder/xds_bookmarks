@@ -14,6 +14,32 @@ function addEvent(to, type, fn) {
     }
 }
 
+class Panel {
+    constructor(title, height, width) {
+        this.height = typeof height === 'undefined' ? 100 : height;
+        this.width = typeof width === 'undefined' ? 100 : width;
+
+        this.title = typeof title === 'undefined' ? '' : title;
+
+        this.create_element();
+    }
+
+    create_element() {
+        this.$panel = $('<div>', {class: 'panel panel-default'});
+        this.$panel_head = $('<div>', {class: 'panel-heading'});
+        this.$panel_body = $('<div>', {class: 'panel-body'});
+        this.$panel_footer = $('<div>', {class: 'panel-footer'});
+        this.$panel_title = $('<h3>', {class: 'panel-title'});
+
+        this.$panel_title.html(this.title);
+        this.$panel_head.append(this.$panel_title);
+        this.$panel
+            .append(this.$panel_head)
+            .append(this.$panel_body)
+            .append(this.$panel_footer);
+    }
+}
+
 function main() {
     var drop = document.querySelector('#drop');
 
@@ -51,3 +77,6 @@ function main() {
         return false;
     });
 }
+
+// start things off
+$(document).ready(main);

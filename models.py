@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.event import listen
 
-from core.database import Base, db_session, recount_positions
+from core.database import Base
 from core.lib import get_custom_prefixer
 from xds_bookmarks import APP_NAME
 
