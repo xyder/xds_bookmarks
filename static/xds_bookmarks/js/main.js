@@ -40,7 +40,35 @@ class Panel {
     }
 }
 
+function add_log(msg) {
+    $('#log').append('<br>' + $('<div/>').text('Received: ' + msg).html());
+}
+
 function main() {
+
+    var namespace = '/bookmarks/socks';
+    var socket =  io.connect('http://' + document.domain + ':' + location.port + namespace);
+
+    socket.on('xds_connection_event', function(msg) {
+        add_log(msg.data + ' (' + msg.sid + ')')
+    });
+
+    socket.on('connect', function() {
+        socket.emit('xds_connection_event', {data: 'client_connected'})
+    });
+
+    $('form#emit').submit(function (event) {
+        console.log('sending message');
+        socket.emit('xds_bookmarks_get_object', {data: $('#emit_data').val()});
+        return false;
+    });
+
+    $('form#disconnect').submit(function (event) {
+        socket.emit('xds_disconnect');
+        return false;
+    });
+
+
     var drop = document.querySelector('#drop');
 
     // enable 'drop' on this target
