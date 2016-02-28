@@ -1,7 +1,7 @@
-import logging
-
 from flask import render_template, request
 from flask.ext.socketio import emit, disconnect
+
+from server import settings
 
 
 def index():
@@ -13,21 +13,19 @@ def index():
 
 
 def sock_get_object(message):
-    print(message)
-    print(type(message))
+    logger = settings.get_logger()
+    logger.info('%s - received: %s' % (getattr(request, 'sid'), message))
 
 
 def sock_disconnect_request():
-    # noinspection PyUnresolvedReferences
-    emit('xds_connection_event', {'data': 'disconnected', 'sid': request.sid})
+    emit('xds_connection_event', {'data': 'disconnected', 'sid': getattr(request, 'sid', '')})
     disconnect()
 
 
 def on_connect():
-    # noinspection PyUnresolvedReferences
-    emit('xds_connection_event', {'data': 'connected', 'sid': request.sid})
+    emit('xds_connection_event', {'data': 'connected', 'sid': getattr(request, 'sid', '')})
 
 
 def on_disconnect():
-    # noinspection PyUnresolvedReferences
-    print('Client [%s] disconnected.' % request.sid)
+    logger = settings.get_logger()
+    logger.info('%s - client disconnected.' % getattr(request, 'sid', ''))
