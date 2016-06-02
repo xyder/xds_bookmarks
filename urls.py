@@ -3,13 +3,8 @@ from xds_bookmarks import views
 
 urlpatterns = [
     url('/', view_func=views.index),
-]
-
-socketpatterns = [
-    url('/socks', routes=[
-        url(event_name='xds_bookmarks_get_object', socket_func=views.sock_get_object),
-        url(event_name='xds_disconnect', socket_func=views.sock_disconnect_request),
-        url(event_name='connect', socket_func=views.on_connect),
-        url(event_name='disconnect', socket_func=views.on_disconnect),
-    ])
+    url('/socks', event_name='xds_bookmarks_get_object', view_func=views.sock_get_object),
+    url('/socks', event_name='xds_disconnect', view_func=views.sock_disconnect_request),
+    url('/socks', event_name='connect', view_func=views.on_connect),
+    url('/socks', event_name='disconnect', view_func=views.on_disconnect),
 ]
